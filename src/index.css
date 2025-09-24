@@ -1,0 +1,167 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* LegalEase Design System - Professional Legal Platform
+All colors MUST be HSL for proper theming.
+*/
+
+@layer base {
+  :root {
+    /* Base colors */
+    --background: 0 0% 100%;
+    --foreground: 210 22% 22%;
+
+    /* Card system */
+    --card: 0 0% 100%;
+    --card-foreground: 210 22% 22%;
+
+    /* Popover system */
+    --popover: 0 0% 100%;
+    --popover-foreground: 210 22% 22%;
+
+    /* Primary - Deep Blue for trust and authority */
+    --primary: 217 91% 50%;
+    --primary-foreground: 0 0% 100%;
+    --primary-light: 217 91% 60%;
+    --primary-dark: 217 91% 40%;
+
+    /* Secondary - Light Blue for approachability */
+    --secondary: 210 100% 95%;
+    --secondary-foreground: 217 91% 50%;
+
+    /* Muted colors */
+    --muted: 210 40% 98%;
+    --muted-foreground: 210 20% 50%;
+
+    /* Accent - Professional blue-gray */
+    --accent: 210 40% 95%;
+    --accent-foreground: 210 22% 22%;
+
+    /* Status colors */
+    --success: 142 76% 36%;
+    --success-foreground: 0 0% 100%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 100%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    /* Interactive elements */
+    --border: 210 40% 90%;
+    --input: 210 40% 98%;
+    --ring: 217 91% 50%;
+
+    /* Legal platform specific */
+    --lawyer-badge: 142 76% 36%;
+    --verified-badge: 217 91% 50%;
+    --subscription-active: 142 76% 36%;
+    --consultation-pending: 38 92% 50%;
+
+    /* Gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(217 91% 50%), hsl(217 91% 60%));
+    --gradient-hero: linear-gradient(135deg, hsl(217 91% 50%), hsl(210 100% 70%));
+    --gradient-card: linear-gradient(180deg, hsl(0 0% 100%), hsl(210 40% 98%));
+
+    /* Shadows */
+    --shadow-sm: 0 1px 2px 0 hsl(217 91% 50% / 0.05);
+    --shadow-md: 0 4px 6px -1px hsl(217 91% 50% / 0.1), 0 2px 4px -1px hsl(217 91% 50% / 0.06);
+    --shadow-lg: 0 10px 15px -3px hsl(217 91% 50% / 0.1), 0 4px 6px -2px hsl(217 91% 50% / 0.05);
+    --shadow-xl: 0 20px 25px -5px hsl(217 91% 50% / 0.1), 0 10px 10px -5px hsl(217 91% 50% / 0.04);
+
+    /* Animations */
+    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-bounce: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+
+    --radius: 0.75rem;
+
+    --sidebar-background: 0 0% 98%;
+
+    --sidebar-foreground: 240 5.3% 26.1%;
+
+    --sidebar-primary: 240 5.9% 10%;
+
+    --sidebar-primary-foreground: 0 0% 98%;
+
+    --sidebar-accent: 240 4.8% 95.9%;
+
+    --sidebar-accent-foreground: 240 5.9% 10%;
+
+    --sidebar-border: 220 13% 91%;
+
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+
+  .dark {
+    /* Dark mode base colors */
+    --background: 215 28% 8%;
+    --foreground: 210 40% 98%;
+
+    /* Dark mode cards */
+    --card: 215 28% 12%;
+    --card-foreground: 210 40% 98%;
+
+    /* Dark mode popovers */
+    --popover: 215 28% 12%;
+    --popover-foreground: 210 40% 98%;
+
+    /* Dark mode primary - Lighter blue for visibility */
+    --primary: 217 91% 60%;
+    --primary-foreground: 215 28% 8%;
+    --primary-light: 217 91% 70%;
+    --primary-dark: 217 91% 50%;
+
+    /* Dark mode secondary */
+    --secondary: 215 28% 16%;
+    --secondary-foreground: 217 91% 60%;
+
+    /* Dark mode muted */
+    --muted: 215 28% 16%;
+    --muted-foreground: 210 20% 70%;
+
+    /* Dark mode accent */
+    --accent: 215 28% 16%;
+    --accent-foreground: 210 40% 98%;
+
+    /* Dark mode status colors */
+    --success: 142 76% 45%;
+    --success-foreground: 215 28% 8%;
+    --warning: 38 92% 60%;
+    --warning-foreground: 215 28% 8%;
+    --destructive: 0 84% 70%;
+    --destructive-foreground: 215 28% 8%;
+
+    /* Dark mode interactive elements */
+    --border: 215 28% 20%;
+    --input: 215 28% 16%;
+    --ring: 217 91% 60%;
+
+    /* Dark mode legal platform specific */
+    --lawyer-badge: 142 76% 45%;
+    --verified-badge: 217 91% 60%;
+    --subscription-active: 142 76% 45%;
+    --consultation-pending: 38 92% 60%;
+
+    /* Dark mode gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(217 91% 50%), hsl(217 91% 40%));
+    --gradient-hero: linear-gradient(135deg, hsl(217 91% 40%), hsl(210 100% 30%));
+    --gradient-card: linear-gradient(180deg, hsl(215 28% 12%), hsl(215 28% 8%));
+    --sidebar-background: 240 5.9% 10%;
+    --sidebar-foreground: 240 4.8% 95.9%;
+    --sidebar-primary: 224.3 76.3% 48%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 3.7% 15.9%;
+    --sidebar-accent-foreground: 240 4.8% 95.9%;
+    --sidebar-border: 240 3.7% 15.9%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+}
