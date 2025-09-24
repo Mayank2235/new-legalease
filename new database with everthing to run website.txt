@@ -1,0 +1,179 @@
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
+-- Drop tables in dependency order (idempotent-safe)
+DROP TABLE IF EXISTS case_documents CASCADE;
+DROP TABLE IF EXISTS messages CASCADE;
+DROP TABLE IF EXISTS case_requests CASCADE;
+DROP TABLE IF EXISTS cases CASCADE;
+DROP TABLE IF EXISTS consultations CASCADE;
+DROP TABLE IF EXISTS admins CASCADE;
+DROP TABLE IF EXISTS lawyers CASCADE;
+DROP TABLE IF EXISTS clients CASCADE;
+DROP TABLE IF EXISTS users CASCADE;
+
+-- Create users (root identity for all roles)
+CREATE TABLE users (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name VARCHAR(255) NOT NULL,
+  email VARCHAR(255) NOT NULL UNIQUE,
+  password VARCHAR(255) NOT NULL,
+  role VARCHAR(20) NOT NULL, -- CLIENT | LAWYER | ADMIN
+  created_at TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  is_active BOOLEAN NOT NULL DEFAULT TRUE
+);
+
+-- Clients (1:1 with users)
+CREATE TABLE clients (
+  id UUID PRIMARY KEY,
+  phone VARCHAR(20) NOT NULL,
+  address TEXT NOT NULL,
+  CONSTRAINT fk_clients_user FOREIGN KEY (id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- Lawyers (1:1 with users)
+CREATE TABLE lawyers (
+  id UUID PRIMARY KEY,
+  specialization VARCHAR(255) NOT NULL,
+  experience VARCHAR(100) NOT NULL,
+  verified BOOLEAN NOT NULL DEFAULT FALSE,
+  hourly_rate DECIMAL(10,2) NOT NULL,
+  CONSTRAINT fk_lawyers_user FOREIGN KEY (id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- Admins (1:1 with users)
+CREATE TABLE admins (
+  id UUID PRIMARY KEY,
+  department VARCHAR(255) NOT NULL,
+  permissions TEXT NOT NULL,
+  CONSTRAINT fk_admins_user FOREIGN KEY (id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- Consultations
+-- Note: status stored as VARCHAR to match JPA EnumType.STRING
+CREATE TABLE consultations (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  client_id UUID NOT NULL,
+  lawyer_id UUID NOT NULL,
+  scheduled_at TIMESTAMP(6) NOT NULL,
+  status VARCHAR(20) NOT NULL DEFAULT 'PENDING', -- PENDING | CONFIRMED | REJECTED | COMPLETED
+  CONSTRAINT fk_consultations_client FOREIGN KEY (client_id) REFERENCES users(id) ON DELETE CASCADE,
+  CONSTRAINT fk_consultations_lawyer FOREIGN KEY (lawyer_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- Cases
+-- status/type stored as VARCHAR to match JPA EnumType.STRING
+CREATE TABLE cases (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  client_id UUID NOT NULL,
+  lawyer_id UUID NOT NULL,
+  title VARCHAR(255) NOT NULL,
+  description TEXT,
+  status VARCHAR(20) NOT NULL DEFAULT 'ACTIVE', -- ACTIVE | PENDING | COMPLETED | CLOSED | CANCELLED
+  type VARCHAR(30) NOT NULL, -- CRIMINAL | CIVIL | FAMILY | CORPORATE | REAL_ESTATE | ... | OTHER
+  hourly_rate DECIMAL(10,2),
+  total_hours DECIMAL(10,2) DEFAULT 0,
+  total_amount DECIMAL(10,2) DEFAULT 0,
+  created_at TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP(6),
+  CONSTRAINT fk_cases_client FOREIGN KEY (client_id) REFERENCES users(id) ON DELETE CASCADE,
+  CONSTRAINT fk_cases_lawyer FOREIGN KEY (lawyer_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- Case Requests
+-- status/type stored as VARCHAR to match JPA EnumType.STRING
+CREATE TABLE case_requests (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  client_id UUID NOT NULL,
+  lawyer_id UUID NOT NULL,
+  title VARCHAR(255) NOT NULL,
+  description TEXT,
+  type VARCHAR(30) NOT NULL, -- same allowed values as cases.type
+  status VARCHAR(20) NOT NULL DEFAULT 'PENDING', -- PENDING | ACCEPTED | REJECTED | CANCELLED
+  created_at TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP(6),
+  CONSTRAINT fk_case_requests_client FOREIGN KEY (client_id) REFERENCES users(id) ON DELETE CASCADE,
+  CONSTRAINT fk_case_requests_lawyer FOREIGN KEY (lawyer_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- Messages (optionally linked to a case)
+CREATE TABLE messages (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  sender_id UUID NOT NULL,
+  receiver_id UUID NOT NULL,
+  case_id UUID,
+  content TEXT NOT NULL,
+  is_read BOOLEAN NOT NULL DEFAULT FALSE,
+  created_at TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT fk_messages_sender FOREIGN KEY (sender_id) REFERENCES users(id) ON DELETE CASCADE,
+  CONSTRAINT fk_messages_receiver FOREIGN KEY (receiver_id) REFERENCES users(id) ON DELETE CASCADE,
+  CONSTRAINT fk_messages_case FOREIGN KEY (case_id) REFERENCES cases(id) ON DELETE CASCADE
+);
+
+-- Case Documents (file metadata; files live on disk under uploads/case-docs/{caseId}/...)
+CREATE TABLE case_documents (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  case_id UUID NOT NULL,
+  lawyer_id UUID NOT NULL,
+  original_name VARCHAR(255) NOT NULL,
+  stored_name VARCHAR(255) NOT NULL,
+  content_type VARCHAR(100) NOT NULL,
+  size_bytes BIGINT NOT NULL,
+  storage_path TEXT NOT NULL,
+  created_at TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT fk_case_documents_case FOREIGN KEY (case_id) REFERENCES cases(id) ON DELETE CASCADE,
+  CONSTRAINT fk_case_documents_lawyer FOREIGN KEY (lawyer_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- Indexes (read performance)
+CREATE INDEX idx_users_email ON users(email);
+CREATE INDEX idx_users_role ON users(role);
+
+CREATE INDEX idx_consultations_client_id ON consultations(client_id);
+CREATE INDEX idx_consultations_lawyer_id ON consultations(lawyer_id);
+CREATE INDEX idx_consultations_status ON consultations(status);
+CREATE INDEX idx_consultations_scheduled_at ON consultations(scheduled_at);
+
+CREATE INDEX idx_cases_client_id ON cases(client_id);
+CREATE INDEX idx_cases_lawyer_id ON cases(lawyer_id);
+CREATE INDEX idx_cases_status ON cases(status);
+
+CREATE INDEX idx_case_requests_client_id ON case_requests(client_id);
+CREATE INDEX idx_case_requests_lawyer_id ON case_requests(lawyer_id);
+CREATE INDEX idx_case_requests_status ON case_requests(status);
+
+CREATE INDEX idx_messages_sender_id ON messages(sender_id);
+CREATE INDEX idx_messages_receiver_id ON messages(receiver_id);
+CREATE INDEX idx_messages_case_id ON messages(case_id);
+CREATE INDEX idx_messages_created_at ON messages(created_at);
+
+CREATE INDEX idx_case_documents_case_id ON case_documents(case_id);
+CREATE INDEX idx_case_documents_lawyer_id ON case_documents(lawyer_id);
+CREATE INDEX idx_case_documents_created_at ON case_documents(created_at);
+
+-- Optional: seed a minimal set of sample rows (safe to remove if not needed)
+-- Users (1 client, 1 lawyer, 1 admin). Replace password hashes as needed.
+INSERT INTO users (id, name, email, password, role)
+VALUES
+  (gen_random_uuid(), 'Sample Client', 'client@example.com', 'temp', 'CLIENT'),
+  (gen_random_uuid(), 'Sample Lawyer', 'lawyer@example.com', 'temp', 'LAWYER'),
+  (gen_random_uuid(), 'Sample Admin', 'admin@example.com', 'temp', 'ADMIN');
+
+-- Tie CLIENT and LAWYER tables to the created users
+-- (You can update these to match the UUIDs you actually want to use)
+WITH c AS (
+  SELECT id FROM users WHERE email = 'client@example.com' LIMIT 1
+), l AS (
+  SELECT id FROM users WHERE email = 'lawyer@example.com' LIMIT 1
+)
+INSERT INTO clients (id, phone, address)
+SELECT id, '+1-555-0101', 'Address N/A' FROM c
+ON CONFLICT (id) DO NOTHING;
+
+WITH l AS (
+  SELECT id FROM users WHERE email = 'lawyer@example.com' LIMIT 1
+)
+INSERT INTO lawyers (id, specialization, experience, verified, hourly_rate)
+SELECT id, 'General Practice', '5 years', TRUE, 150.00 FROM l
+ON CONFLICT (id) DO NOTHING;
+
+-- Done.
